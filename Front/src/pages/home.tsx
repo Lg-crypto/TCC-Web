@@ -24,6 +24,9 @@ export default function Home() {
   const [selectedMonth, setSelectedMonth] = useState("all");
 
   useEffect(() => {
+    // onAuthStateChanged recebe Auth e callback de User|null; seu retorno cancela a observação.
+    // Para cada conta autenticada, onSnapshot observa users/{uid}/records ordenados por dateKey,
+    // entrega os documentos convertidos em RecordType e retorna a função para encerrar a escuta.
     let unsubscribeRecords: (() => void) | undefined;
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       unsubscribeRecords?.();
@@ -299,6 +302,8 @@ export default function Home() {
   );
 }
 
-function EmptyChart({ text }: { text: string }) {
+interface EmptyChartProps { text: string }
+
+function EmptyChart({ text }: EmptyChartProps) {
   return <div className={styles.emptyChart}>{text}</div>;
 }

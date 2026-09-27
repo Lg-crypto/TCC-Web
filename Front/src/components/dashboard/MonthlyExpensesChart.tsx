@@ -2,12 +2,10 @@ import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { formatCurrency } from "../../functions/financeDashboard";
 
-type MonthlyExpense = { label: string; value: number };
-export default function MonthlyExpensesChart({
-  data,
-}: {
-  data: MonthlyExpense[];
-}) {
+interface MonthlyExpense { label: string; value: number }
+interface MonthlyExpensesChartProps { data: MonthlyExpense[] }
+
+export default function MonthlyExpensesChart({ data }: MonthlyExpensesChartProps) {
   const options: ApexOptions = {
     chart: {
       toolbar: { show: false },

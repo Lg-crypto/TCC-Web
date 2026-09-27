@@ -1,6 +1,6 @@
 import { formatCurrency } from "../../functions/financeDashboard";
 
-type SummaryCardProps = {
+interface SummaryCardProps {
   label: string;
   value: number;
   positive?: boolean;
@@ -9,7 +9,7 @@ type SummaryCardProps = {
   positiveClassName: string;
   mutedPositiveClassName: string;
   negativeClassName: string;
-};
+}
 
 export default function SummaryCard({
   label,

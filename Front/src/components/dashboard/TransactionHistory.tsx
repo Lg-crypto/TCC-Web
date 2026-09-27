@@ -6,7 +6,7 @@ import {
 } from "../../functions/financeDashboard";
 import type { RecordType } from "../../types/recordType";
 
-type TransactionHistoryProps = {
+interface TransactionHistoryProps {
   records: RecordType[];
   search: string;
   onSearchChange: (value: string) => void;
@@ -19,7 +19,7 @@ type TransactionHistoryProps = {
   positiveClassName: string;
   negativeClassName: string;
   emptyClassName: string;
-};
+}
 
 export default function TransactionHistory({
   records,
@@ -74,14 +74,17 @@ export default function TransactionHistory({
   );
 }
 
-type TransactionCardProps = Pick<
+interface TransactionCardProps extends Pick<
   TransactionHistoryProps,
   | "dateHeadingClassName"
   | "transactionClassName"
   | "iconClassName"
   | "positiveClassName"
   | "negativeClassName"
-> & { record: RecordType; showHeading: boolean };
+> {
+  record: RecordType;
+  showHeading: boolean;
+}
 export function TransactionCard({
   record,
   showHeading,

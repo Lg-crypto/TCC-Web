@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
@@ -90,7 +90,7 @@ export default function NewRecordPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
     formState: { errors, isSubmitting },
@@ -98,7 +98,7 @@ export default function NewRecordPage() {
     resolver: zodResolver(recordSchema),
     defaultValues: initialValues,
   });
-  const selectedType = watch("type");
+  const selectedType = useWatch({ control, name: "type" });
   const categories =
     selectedType === "Gain" ? gainCategories : expenseCategories;
 
@@ -106,6 +106,8 @@ export default function NewRecordPage() {
     setValue("category", selectedType === "Gain" ? "Salary" : "House");
   }, [selectedType, setValue]);
   useEffect(() => {
+    // onAuthStateChanged recebe Auth e callback de User|null; seu retorno cancela a observação.
+    // onSnapshot acompanha users/{uid}/records, fornece os documentos em tempo real e devolve a função de cancelamento.
     let unsubscribeRecords: (() => void) | undefined;
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       unsubscribeRecords?.();
@@ -386,17 +388,14 @@ export default function NewRecordPage() {
     </main>
   );
 }
-function Summary({
-  label,
-  value,
-  positive,
-  negative,
-}: {
+interface SummaryProps {
   label: string;
   value: number;
   positive?: boolean;
   negative?: boolean;
-}) {
+}
+
+function Summary({ label, value, positive, negative }: SummaryProps) {
   return (
     <article className={styles.summary}>
       <span>{label}</span>
@@ -415,7 +414,9 @@ function Summary({
     </article>
   );
 }
-function Transaction({ record }: { record: RecordType }) {
+interface TransactionProps { record: RecordType }
+
+function Transaction({ record }: TransactionProps) {
   const detail =
     categoryDetails[record.destination_or_source || "Other"] ||
     categoryDetails.Other;

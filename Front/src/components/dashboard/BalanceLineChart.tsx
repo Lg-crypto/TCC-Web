@@ -2,11 +2,11 @@ import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { formatCurrency } from "../../functions/financeDashboard";
 
-type BalanceLineChartProps = {
+interface BalanceLineChartProps {
   categories: string[];
   data: number[];
   height?: number;
-};
+}
 
 export default function BalanceLineChart({
   categories,

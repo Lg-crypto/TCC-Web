@@ -6,12 +6,12 @@ import {
 } from "../../functions/financeDashboard";
 
 type CategoryExpense = [string, number];
-type ExpenseDistributionChartProps = {
+interface ExpenseDistributionChartProps {
   data: CategoryExpense[];
   contentClassName: string;
   legendClassName: string;
   emptyClassName: string;
-};
+}
 const colors = ["#24d878", "#23cb6b", "#aeb4c4", "#ff4e7b", "#8b8e9a"];
 
 export default function ExpenseDistributionChart({
