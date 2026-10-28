@@ -1,5 +1,5 @@
 import styles from "./about.module.css";
-import background from "../assets/logo-clara.png";
+import background from "../assets/logo.svg";
 import image from "../assets/image1.png";
 import fotoHigor from "../assets/Higor.png"
 import fotoYoshida from "../assets/Yoshida.png"

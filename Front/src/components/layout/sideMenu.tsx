@@ -31,7 +31,7 @@ export default function SideMenu() {
         <NavLink to="/profile" aria-label="Perfil" className={({ isActive }) => `${styles.link} ${isActive ? styles.activeLink : ""}`}>
           <IoPersonCircle size={25} />
         </NavLink>
-        <NavLink to="/" aria-label="Início" className={({ isActive }) => `${styles.link} ${isActive ? styles.activeLink : ""}`}>
+        <NavLink to="/about" aria-label="Início" className={({ isActive }) => `${styles.link} ${isActive ? styles.activeLink : ""}`}>
           <LuHouse size={22} />
         </NavLink>
         <NavLink to="/home" aria-label="Painel financeiro" className={({ isActive }) => `${styles.link} ${isActive ? styles.activeLink : ""}`}>
