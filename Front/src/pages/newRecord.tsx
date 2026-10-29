@@ -4,16 +4,16 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import {
   LuCircleDollarSign,
-  LuCircleUser,
   LuFilter,
   LuPlus,
   LuSearch,
   LuTag,
   LuCalendarDays,
   LuWallet,
+  LuTrash2,
 } from "react-icons/lu";
 import SideMenu from "../components/layout/sideMenu";
 import { auth, db } from "../services/firebase";
@@ -48,6 +48,7 @@ const recordSchema = z.object({
   value: z
     .number("Informe um valor válido.")
     .positive("Informe um valor maior que zero."),
+  date: z.string().min(1, "Selecione a data da transação."),
   category: z.string().min(1, "Selecione uma categoria."),
   comment: z
     .string()
@@ -62,6 +63,7 @@ const initialValues = {
   category: "House",
   description: "",
   value: undefined,
+  date: "",
   comment: "",
 };
 
@@ -90,6 +92,10 @@ export default function NewRecordPage() {
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
   const [submitError, setSubmitError] = useState("");
   const [section, setSection] = useState<"records" | "subscriptions">("records");
+  const [subscriptionFilter, setSubscriptionFilter] = useState<"all" | "today" | "yesterday">("all");
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingId, setDeletingId] = useState("");
   const {
     register,
     handleSubmit,
@@ -99,7 +105,7 @@ export default function NewRecordPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(recordSchema),
-    defaultValues: initialValues,
+    defaultValues: { ...initialValues, date: getToday().dateKey },
   });
   const selectedType = useWatch({ control, name: "type" });
   const categories =
@@ -140,20 +146,35 @@ export default function NewRecordPage() {
     if (!user) return navigate("/login");
     try {
       setSubmitError("");
-      const { date, dateKey } = getToday();
+      const [year, month, day] = data.date.split("-");
       await createRecord(user.uid, {
         gain: data.type === "Gain",
         value: data.value,
-        date,
-        dateKey,
+        date: `${day}/${month}/${year}`,
+        dateKey: data.date,
         description: data.description,
         destination_or_source: data.category,
         comment: data.comment || "",
       });
-      reset(initialValues);
+      reset({ ...initialValues, date: getToday().dateKey });
     } catch (error) {
       console.error(error);
       setSubmitError("Não foi possível salvar a transação. Tente novamente.");
+    }
+  };
+  const deleteRecord = async (recordId?: string) => {
+    const user = auth.currentUser;
+    if (!user) return navigate("/login");
+    if (!recordId) return setDeleteError("Não foi possível identificar este registro.");
+    setDeletingId(recordId);
+    setDeleteError("");
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "records", recordId));
+    } catch (error) {
+      console.error(error);
+      setDeleteError("Não foi possível excluir o registro. Tente novamente.");
+    } finally {
+      setDeletingId("");
     }
   };
   const totals = useMemo(
@@ -227,7 +248,7 @@ export default function NewRecordPage() {
               <button type="button" className={section === "records" ? styles.selectedTab : ""} onClick={() => setSection("records")}>Registro</button>
               <button type="button" className={section === "subscriptions" ? styles.selectedTab : ""} onClick={() => setSection("subscriptions")}>Assinatura</button>
             </nav>
-            <p>Adicione transações e acompanhe seus ganhos e gastos.</p>
+            <p>{section === "records" ? "Adicione transações e acompanhe seus ganhos e gastos." : "Adicione assinaturas e acompanhe seus pagamentos recorrentes."}</p>
           </div>
           <div className={styles.headerActions}>
             <label className={styles.searchBox}>
@@ -235,29 +256,31 @@ export default function NewRecordPage() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar transações"
-                aria-label="Buscar transações"
+              placeholder={section === "records" ? "Buscar transações" : "Buscar assinaturas"}
+              aria-label={section === "records" ? "Buscar transações" : "Buscar assinaturas"}
               />
             </label>
             <button
               className={styles.iconButton}
               type="button"
-              onClick={() => {
-                setSearch("");
-                setActiveFilter("all");
-              }}
-              aria-label="Limpar filtros"
+              onClick={() => setFilterMenuOpen(open => !open)}
+              aria-label="Abrir filtros"
+              aria-expanded={filterMenuOpen}
             >
               <LuFilter size={19} />
             </button>
-            <button
-              className={styles.iconButton}
-              type="button"
-              onClick={() => navigate("/profile")}
-              aria-label="Abrir perfil"
-            >
-              <LuCircleUser size={20} />
-            </button>
+            {filterMenuOpen && <div className={styles.filterMenu}>
+              <strong>Filtrar {section === "records" ? "transações" : "assinaturas"}</strong>
+              {(section === "records" ? filters : [{ id: "all", label: "Todas" }, { id: "today", label: "Hoje" }, { id: "yesterday", label: "Ontem" }]).map(filter => {
+                const selected = section === "records" ? activeFilter === filter.id : subscriptionFilter === filter.id;
+                return <button key={filter.id} type="button" className={selected ? styles.selectedMenuFilter : ""} onClick={() => {
+                  if (section === "records") setActiveFilter(filter.id as Filter);
+                  else setSubscriptionFilter(filter.id as "all" | "today" | "yesterday");
+                  setFilterMenuOpen(false);
+                }}>{filter.label}</button>;
+              })}
+              <button type="button" className={styles.clearFilters} onClick={() => {setSearch("");setActiveFilter("all");setSubscriptionFilter("all");setFilterMenuOpen(false);}}>Limpar busca e filtros</button>
+            </div>}
           </div>
         </header>
         {section === "records" ? <div className={styles.layout}>
@@ -311,19 +334,19 @@ export default function NewRecordPage() {
               </select>
             </label>
             <label className={styles.field}>
-              Comentário
-              <textarea
-                {...register("comment")}
-                placeholder="Adicione uma observação (opcional)"
-              />
-              {errors.comment && <span>{errors.comment.message}</span>}
+              Data da transação
+              <div className={styles.inputWrap}>
+                <LuCalendarDays size={17} />
+                <input type="date" {...register("date")} />
+              </div>
+              {errors.date && <span>{errors.date.message}</span>}
             </label>
             {submitError && <p className={styles.formError}>{submitError}</p>}
             <div className={styles.formActions}>
               <button
                 className={styles.cancelButton}
                 type="button"
-                onClick={() => reset(initialValues)}
+                onClick={() => reset({ ...initialValues, date: getToday().dateKey })}
               >
                 Cancelar
               </button>
@@ -364,6 +387,7 @@ export default function NewRecordPage() {
               ))}
             </div>
             <div className={styles.transactionGroups}>
+              {deleteError && <p className={styles.formError} role="alert">{deleteError}</p>}
               {groups.length ? (
                 groups.map((group) => (
                   <section className={styles.group} key={group.title}>
@@ -380,6 +404,8 @@ export default function NewRecordPage() {
                       <Transaction
                         key={record.id || `${group.title}-${index}`}
                         record={record}
+                        onDelete={deleteRecord}
+                        deleting={deletingId === record.id}
                       />
                     ))}
                   </section>
@@ -389,7 +415,7 @@ export default function NewRecordPage() {
               )}
             </div>
           </section>
-        </div> : <SubscriptionSection navigateToLogin={() => navigate("/login")} />}
+        </div> : <SubscriptionSection navigateToLogin={() => navigate("/login")} search={search} filter={subscriptionFilter} onFilterChange={setSubscriptionFilter} />}
       </section>
     </main>
   );
@@ -420,9 +446,9 @@ function Summary({ label, value, positive, negative }: SummaryProps) {
     </article>
   );
 }
-interface TransactionProps { record: RecordType }
+interface TransactionProps { record: RecordType; onDelete?: (id?: string) => void; deleting?: boolean }
 
-function Transaction({ record }: TransactionProps) {
+function Transaction({ record, onDelete, deleting = false }: TransactionProps) {
   const detail =
     categoryDetails[record.destination_or_source || "Other"] ||
     categoryDetails.Other;
@@ -440,18 +466,21 @@ function Transaction({ record }: TransactionProps) {
         {record.gain ? "+" : "−"}
         {formatCurrency(Number(record.value))}
       </strong>
+      <button className={styles.deleteButton} type="button" onClick={() => onDelete?.(record.id)} disabled={deleting} aria-label={`Excluir registro ${record.description}`} title="Excluir registro">
+        <LuTrash2 size={16} />
+      </button>
     </article>
   );
 }
 
 type Subscription = { id: string; description: string; gain: boolean; value: number; period: string; date: string; dateKey: string; comment?: string };
 
-function SubscriptionSection({ navigateToLogin }: { navigateToLogin: () => void }) {
+function SubscriptionSection({ navigateToLogin, search, filter, onFilterChange }: { navigateToLogin: () => void; search: string; filter: "all" | "today" | "yesterday"; onFilterChange: (filter: "all" | "today" | "yesterday") => void }) {
   const [items, setItems] = useState<Subscription[]>([]);
-  const [filter, setFilter] = useState<"all" | "today" | "yesterday">("all");
   const [form, setForm] = useState({ description: "", type: "Expense", period: "Mensal", value: "", date: "", comment: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     const stopAuth = onAuthStateChanged(auth, user => {
@@ -483,10 +512,19 @@ function SubscriptionSection({ navigateToLogin }: { navigateToLogin: () => void 
     } catch (saveError) { console.error(saveError); setError("Não foi possível salvar a assinatura. Tente novamente."); }
     finally { setSaving(false); }
   };
+  const deleteSubscription = async (id: string) => {
+    const user = auth.currentUser;
+    if (!user) { navigateToLogin(); return; }
+    setDeletingId(id); setError("");
+    try { await deleteDoc(doc(db, "users", user.uid, "subscriptions", id)); }
+    catch (deleteError) { console.error(deleteError); setError("Não foi possível excluir a assinatura. Tente novamente."); }
+    finally { setDeletingId(""); }
+  };
   const today = getToday().dateKey;
   const yesterdayDate = new Date(); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth()+1).padStart(2,"0")}-${String(yesterdayDate.getDate()).padStart(2,"0")}`;
-  const shown = items.filter(item => filter === "all" || item.dateKey === (filter === "today" ? today : yesterday));
+  const term = search.trim().toLocaleLowerCase("pt-BR");
+  const shown = items.filter(item => (filter === "all" || item.dateKey === (filter === "today" ? today : yesterday)) && (!term || `${item.description} ${item.period} ${item.date} ${item.comment || ""} ${item.gain ? "ganhos" : "gastos"}`.toLocaleLowerCase("pt-BR").includes(term)));
   const gains = items.filter(item => item.gain).reduce((sum, item) => sum + Number(item.value || 0), 0);
   const expenses = items.filter(item => !item.gain).reduce((sum, item) => sum + Number(item.value || 0), 0);
   return <div className={styles.layout}>
@@ -497,14 +535,13 @@ function SubscriptionSection({ navigateToLogin }: { navigateToLogin: () => void 
       <label className={styles.field}>Período de pagamento<select value={form.period} onChange={event => setForm({...form, period:event.target.value})}><option>Mensal</option><option>Semanal</option><option>Quinzenal</option><option>Anual</option></select></label>
       <label className={styles.field}>Valor<div className={styles.inputWrap}><LuCircleDollarSign size={17}/><input required type="number" min="0.01" step="0.01" value={form.value} onChange={event => setForm({...form, value:event.target.value})} placeholder="R$ 0,00"/></div></label>
       <label className={styles.field}>Data de cobrança<div className={styles.inputWrap}><LuCalendarDays size={17}/><input required type="date" value={form.date} onChange={event => setForm({...form, date:event.target.value})}/></div></label>
-      <label className={styles.field}>Comentário<textarea value={form.comment} maxLength={280} onChange={event => setForm({...form, comment:event.target.value})} placeholder="Adicione uma observação (opcional)"/></label>
       {error && <p className={styles.formError}>{error}</p>}
       <div className={styles.formActions}><button className={styles.cancelButton} type="button" onClick={() => {setForm({description:"",type:"Expense",period:"Mensal",value:"",date:"",comment:""});setError("");}}>Cancelar</button><button className={styles.saveButton} type="submit" disabled={saving}><LuPlus size={18}/>{saving ? "Salvando..." : "Salvar assinatura"}</button></div>
     </form>
     <section className={styles.history}>
       <div className={styles.historyTop}><div><h2>Histórico de Assinaturas</h2><p>Hoje e ontem</p></div><div className={styles.summaryCards}><Summary label="Saldo" value={gains-expenses}/><Summary label="Ganhos" value={gains} positive/><Summary label="Gastos" value={expenses} negative/></div></div>
-      <div className={styles.filters}>{(["all","today","yesterday"] as const).map(value => <button key={value} type="button" className={filter===value?styles.activeFilter:""} onClick={() => setFilter(value)}>{value==="all"?"Todas":value==="today"?"Hoje":"Ontem"}</button>)}</div>
-      <div className={styles.transactionGroups}>{shown.length ? shown.map(item => <article className={styles.transaction} key={item.id}><span className={styles.transactionIcon}><LuWallet size={19}/></span><div><h4>{item.description}</h4><p>{item.gain?"Ganhos":"Gastos"} · {item.period} · {item.date}</p></div><strong className={item.gain?styles.positive:styles.negative}>{item.gain?"+":"−"}{formatCurrency(Number(item.value))}</strong></article>) : <p className={styles.empty}>Nenhuma assinatura encontrada.</p>}</div>
+      <div className={styles.filters}>{(["all","today","yesterday"] as const).map(value => <button key={value} type="button" className={filter===value?styles.activeFilter:""} onClick={() => onFilterChange(value)}>{value==="all"?"Todas":value==="today"?"Hoje":"Ontem"}</button>)}</div>
+      <div className={styles.transactionGroups}>{shown.length ? shown.map(item => <article className={styles.transaction} key={item.id}><span className={styles.transactionIcon}><LuWallet size={19}/></span><div><h4>{item.description}</h4><p>{item.gain?"Ganhos":"Gastos"} · {item.period} · {item.date}</p></div><strong className={item.gain?styles.positive:styles.negative}>{item.gain?"+":"−"}{formatCurrency(Number(item.value))}</strong><button className={styles.deleteButton} type="button" onClick={() => deleteSubscription(item.id)} disabled={deletingId===item.id} aria-label={`Excluir assinatura ${item.description}`} title="Excluir assinatura"><LuTrash2 size={16}/></button></article>) : <p className={styles.empty}>Nenhuma assinatura encontrada.</p>}</div>
     </section>
   </div>;
 }
