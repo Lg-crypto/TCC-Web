@@ -1,0 +1,67 @@
+graph TD
+    subgraph User_Interface [User Interface]
+        Login[Login Page]
+        Register[Register Page]
+        About[About Page]
+        ProtectedRoute[Protected Route Middleware]
+
+        subgraph App_Pages [Main Application Pages]
+            Home[Home / Dashboard]
+            NewRecord[New Record Page]
+            Profile[Profile / Account]
+            Settings[Settings Page]
+        end
+
+        subgraph Shared_Components [Shared Components]
+            SideMenu[Side Menu]
+            Layout[Layout Components: Button, Input, Modal]
+        end
+    end
+
+    subgraph Business_Logic [Business Logic & State]
+        FinanceLogic[Finance Dashboard Logic: Balance, Income, Expenses]
+        ChartLogic[Chart Data Processors]
+        AuthLogic[Firebase Auth Observer]
+    end
+
+    subgraph Data_Layer [Data Layer]
+        FirebaseSvc[Firebase Service]
+        FirestoreDB[(Firestore Database)]
+        FirebaseAuth[Firebase Auth]
+    end
+
+    %% User Flows
+    User((User)) --> Login
+    User --> Register
+    User --> About
+
+    Login -->|Authentication| FirebaseAuth
+    Register -->|Account Creation| FirebaseAuth
+
+    FirebaseAuth -->|Session Token| ProtectedRoute
+    ProtectedRoute -->|Authorized| App_Pages
+
+    %% Page Connections
+    App_Pages --> SideMenu
+    Home --> FinanceLogic
+    Home --> ChartLogic
+    NewRecord -->|createRecord| RecordsSvc[Records Service]
+
+    %% Data Flow
+    AuthLogic -->|User ID| FinanceLogic
+    FinanceLogic -->|Query Records| FirebaseSvc
+    RecordsSvc -->|Write Record| FirebaseSvc
+    FirebaseSvc <--> FirestoreDB
+    FirebaseSvc <--> FirebaseAuth
+
+    %% Component Hierarchy
+    Home --> SummaryCard[Summary Cards]
+    Home --> BalanceLineChart[Balance Line Chart]
+    Home --> MonthlyExpensesChart[Monthly Expenses Chart]
+    Home --> ExpenseDistributionChart[Expense Distribution Chart]
+    Home --> TransactionHistory[Transaction History]
+
+    %% Styling/Connecting
+    style User_Interface fill:#f9f,stroke:#333,stroke-width:2px
+    style Business_Logic fill:#bbf,stroke:#333,stroke-width:2px
+    style Data_Layer fill:#dfd,stroke:#333,stroke-width:2px

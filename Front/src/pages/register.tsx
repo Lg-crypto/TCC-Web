@@ -42,6 +42,8 @@ export default function Register() {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(registerSchema) });
+  // createUserWithEmailAndPassword recebe Auth, e-mail e senha e devolve UserCredential;
+  // updateProfile usa a instância User e o displayName para registrar o nome visível.
   const createAccount = async (data: FormValues) => {
     try {
       const credential = await createUserWithEmailAndPassword(
@@ -58,6 +60,7 @@ export default function Register() {
       setOpen(true);
     }
   };
+  // signInWithPopup recebe Auth e GoogleAuthProvider e devolve UserCredential após o OAuth.
   const authenticateWithGoogle = async () => {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());

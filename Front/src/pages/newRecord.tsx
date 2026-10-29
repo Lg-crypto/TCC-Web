@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import {
   LuCircleDollarSign,
   LuCircleUser,
@@ -12,6 +12,8 @@ import {
   LuPlus,
   LuSearch,
   LuTag,
+  LuCalendarDays,
+  LuWallet,
 } from "react-icons/lu";
 import SideMenu from "../components/layout/sideMenu";
 import { auth, db } from "../services/firebase";
@@ -87,10 +89,11 @@ export default function NewRecordPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
   const [submitError, setSubmitError] = useState("");
+  const [section, setSection] = useState<"records" | "subscriptions">("records");
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
     formState: { errors, isSubmitting },
@@ -98,7 +101,7 @@ export default function NewRecordPage() {
     resolver: zodResolver(recordSchema),
     defaultValues: initialValues,
   });
-  const selectedType = watch("type");
+  const selectedType = useWatch({ control, name: "type" });
   const categories =
     selectedType === "Gain" ? gainCategories : expenseCategories;
 
@@ -106,6 +109,8 @@ export default function NewRecordPage() {
     setValue("category", selectedType === "Gain" ? "Salary" : "House");
   }, [selectedType, setValue]);
   useEffect(() => {
+    // onAuthStateChanged recebe Auth e callback de User|null; seu retorno cancela a observação.
+    // onSnapshot acompanha users/{uid}/records, fornece os documentos em tempo real e devolve a função de cancelamento.
     let unsubscribeRecords: (() => void) | undefined;
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       unsubscribeRecords?.();
@@ -218,7 +223,10 @@ export default function NewRecordPage() {
       <section className={styles.content}>
         <header className={styles.pageHeader}>
           <div>
-            <h1>Registro</h1>
+            <nav className={styles.sectionTabs} aria-label="Seções">
+              <button type="button" className={section === "records" ? styles.selectedTab : ""} onClick={() => setSection("records")}>Registro</button>
+              <button type="button" className={section === "subscriptions" ? styles.selectedTab : ""} onClick={() => setSection("subscriptions")}>Assinatura</button>
+            </nav>
             <p>Adicione transações e acompanhe seus ganhos e gastos.</p>
           </div>
           <div className={styles.headerActions}>
@@ -252,7 +260,7 @@ export default function NewRecordPage() {
             </button>
           </div>
         </header>
-        <div className={styles.layout}>
+        {section === "records" ? <div className={styles.layout}>
           <form className={styles.formCard} onSubmit={handleSubmit(onSubmit)}>
             <div>
               <h2>Nova transação</h2>
@@ -381,22 +389,19 @@ export default function NewRecordPage() {
               )}
             </div>
           </section>
-        </div>
+        </div> : <SubscriptionSection navigateToLogin={() => navigate("/login")} />}
       </section>
     </main>
   );
 }
-function Summary({
-  label,
-  value,
-  positive,
-  negative,
-}: {
+interface SummaryProps {
   label: string;
   value: number;
   positive?: boolean;
   negative?: boolean;
-}) {
+}
+
+function Summary({ label, value, positive, negative }: SummaryProps) {
   return (
     <article className={styles.summary}>
       <span>{label}</span>
@@ -415,7 +420,9 @@ function Summary({
     </article>
   );
 }
-function Transaction({ record }: { record: RecordType }) {
+interface TransactionProps { record: RecordType }
+
+function Transaction({ record }: TransactionProps) {
   const detail =
     categoryDetails[record.destination_or_source || "Other"] ||
     categoryDetails.Other;
@@ -435,4 +442,69 @@ function Transaction({ record }: { record: RecordType }) {
       </strong>
     </article>
   );
+}
+
+type Subscription = { id: string; description: string; gain: boolean; value: number; period: string; date: string; dateKey: string; comment?: string };
+
+function SubscriptionSection({ navigateToLogin }: { navigateToLogin: () => void }) {
+  const [items, setItems] = useState<Subscription[]>([]);
+  const [filter, setFilter] = useState<"all" | "today" | "yesterday">("all");
+  const [form, setForm] = useState({ description: "", type: "Expense", period: "Mensal", value: "", date: "", comment: "" });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    const stopAuth = onAuthStateChanged(auth, user => {
+      unsubscribe?.();
+      if (!user) { setItems([]); return; }
+      unsubscribe = onSnapshot(query(collection(db, "users", user.uid, "subscriptions"), orderBy("dateKey", "desc")), snapshot =>
+        setItems(snapshot.docs.map(document => ({ id: document.id, ...document.data() })) as Subscription[]),
+        snapshotError => { console.error(snapshotError); setError("Não foi possível carregar as assinaturas."); },
+      );
+    });
+    return () => { stopAuth(); unsubscribe?.(); };
+  }, []);
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const user = auth.currentUser;
+    if (!user) { navigateToLogin(); return; }
+    const value = Number(form.value);
+    if (form.description.trim().length < 3 || !Number.isFinite(value) || value <= 0 || !form.date) {
+      setError("Preencha nome, valor válido e data de cobrança."); return;
+    }
+    setSaving(true); setError("");
+    try {
+      const [year, month, day] = form.date.split("-");
+      await addDoc(collection(db, "users", user.uid, "subscriptions"), {
+        description: form.description.trim(), gain: form.type === "Gain", period: form.period, value,
+        date: `${day}/${month}/${year}`, dateKey: form.date, comment: form.comment.trim(),
+      });
+      setForm({ description: "", type: "Expense", period: "Mensal", value: "", date: "", comment: "" });
+    } catch (saveError) { console.error(saveError); setError("Não foi possível salvar a assinatura. Tente novamente."); }
+    finally { setSaving(false); }
+  };
+  const today = getToday().dateKey;
+  const yesterdayDate = new Date(); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth()+1).padStart(2,"0")}-${String(yesterdayDate.getDate()).padStart(2,"0")}`;
+  const shown = items.filter(item => filter === "all" || item.dateKey === (filter === "today" ? today : yesterday));
+  const gains = items.filter(item => item.gain).reduce((sum, item) => sum + Number(item.value || 0), 0);
+  const expenses = items.filter(item => !item.gain).reduce((sum, item) => sum + Number(item.value || 0), 0);
+  return <div className={styles.layout}>
+    <form className={styles.formCard} onSubmit={submit}>
+      <div><h2>Nova assinatura</h2><p className={styles.intro}>Preencha os campos abaixo para registrar um novo lançamento recorrente.</p></div>
+      <label className={styles.field}>Nome<div className={styles.inputWrap}><LuTag size={17}/><input required minLength={3} value={form.description} onChange={event => setForm({...form, description:event.target.value})} placeholder="Ex.: Netflix"/></div></label>
+      <label className={styles.field}>Tipo<select value={form.type} onChange={event => setForm({...form, type:event.target.value})}><option value="Expense">Gastos</option><option value="Gain">Ganhos</option></select></label>
+      <label className={styles.field}>Período de pagamento<select value={form.period} onChange={event => setForm({...form, period:event.target.value})}><option>Mensal</option><option>Semanal</option><option>Quinzenal</option><option>Anual</option></select></label>
+      <label className={styles.field}>Valor<div className={styles.inputWrap}><LuCircleDollarSign size={17}/><input required type="number" min="0.01" step="0.01" value={form.value} onChange={event => setForm({...form, value:event.target.value})} placeholder="R$ 0,00"/></div></label>
+      <label className={styles.field}>Data de cobrança<div className={styles.inputWrap}><LuCalendarDays size={17}/><input required type="date" value={form.date} onChange={event => setForm({...form, date:event.target.value})}/></div></label>
+      <label className={styles.field}>Comentário<textarea value={form.comment} maxLength={280} onChange={event => setForm({...form, comment:event.target.value})} placeholder="Adicione uma observação (opcional)"/></label>
+      {error && <p className={styles.formError}>{error}</p>}
+      <div className={styles.formActions}><button className={styles.cancelButton} type="button" onClick={() => {setForm({description:"",type:"Expense",period:"Mensal",value:"",date:"",comment:""});setError("");}}>Cancelar</button><button className={styles.saveButton} type="submit" disabled={saving}><LuPlus size={18}/>{saving ? "Salvando..." : "Salvar assinatura"}</button></div>
+    </form>
+    <section className={styles.history}>
+      <div className={styles.historyTop}><div><h2>Histórico de Assinaturas</h2><p>Hoje e ontem</p></div><div className={styles.summaryCards}><Summary label="Saldo" value={gains-expenses}/><Summary label="Ganhos" value={gains} positive/><Summary label="Gastos" value={expenses} negative/></div></div>
+      <div className={styles.filters}>{(["all","today","yesterday"] as const).map(value => <button key={value} type="button" className={filter===value?styles.activeFilter:""} onClick={() => setFilter(value)}>{value==="all"?"Todas":value==="today"?"Hoje":"Ontem"}</button>)}</div>
+      <div className={styles.transactionGroups}>{shown.length ? shown.map(item => <article className={styles.transaction} key={item.id}><span className={styles.transactionIcon}><LuWallet size={19}/></span><div><h4>{item.description}</h4><p>{item.gain?"Ganhos":"Gastos"} · {item.period} · {item.date}</p></div><strong className={item.gain?styles.positive:styles.negative}>{item.gain?"+":"−"}{formatCurrency(Number(item.value))}</strong></article>) : <p className={styles.empty}>Nenhuma assinatura encontrada.</p>}</div>
+    </section>
+  </div>;
 }

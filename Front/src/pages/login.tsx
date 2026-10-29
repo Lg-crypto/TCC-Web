@@ -23,6 +23,8 @@ export default function Login() {
   const [open, setOpen] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(loginSchema) });
 
+  // Firebase Authentication recebe a instância Auth, e-mail e senha; resolve com UserCredential
+  // (usuário e tokens) ou rejeita com um código de erro exibido no modal.
   const userAuthenticate = async (data: FormValues) => {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
@@ -33,6 +35,7 @@ export default function Login() {
     }
   };
 
+  // signInWithPopup recebe Auth e GoogleAuthProvider, abre o OAuth do Google e resolve com UserCredential.
   const authenticateWithGoogle = async () => {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());

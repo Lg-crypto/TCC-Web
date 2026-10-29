@@ -34,10 +34,11 @@ function getProviderName(user: User) {
 
 export default function Account() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedImageUid, setFailedImageUid] = useState<string | null>(null);
+  const imageFailed = Boolean(user && failedImageUid === user.uid);
 
+  // onAuthStateChanged recebe Auth e callback de User|null; o retorno cancela a observação ao desmontar.
   useEffect(() => onAuthStateChanged(auth, setUser), []);
-  useEffect(() => setImageFailed(false), [user?.uid]);
 
   const profile = useMemo(() => {
     const displayName =
@@ -63,7 +64,7 @@ export default function Account() {
                   <img
                     src={user.photoURL}
                     alt={`Foto de perfil de ${profile.displayName}`}
-                    onError={() => setImageFailed(true)}
+                    onError={() => setFailedImageUid(user.uid)}
                   />
                 ) : (
                   <span>{getInitials(profile.displayName)}</span>
@@ -122,17 +123,14 @@ export default function Account() {
   );
 }
 
-function InfoItem({
-  icon,
-  label,
-  value,
-  mono = false,
-}: {
+interface InfoItemProps {
   icon: ReactNode;
   label: string;
   value: string;
   mono?: boolean;
-}) {
+}
+
+function InfoItem({ icon, label, value, mono = false }: InfoItemProps) {
   return (
     <article className={styles.info}>
       <span className={styles.infoIcon}>{icon}</span>
