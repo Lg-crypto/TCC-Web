@@ -95,33 +95,12 @@ h1 {
     z-index: 1;
     top: 12px;
     left: 14px;
-    color: #abb2c2;
+    color: var(--icon-color);
     font-size: 18px;
 }
 
 .iconField input {
     padding-left: 44px;
-}
-
-.phoneField .flag {
-    position: absolute;
-    z-index: 1;
-    left: 14px;
-    top: 11px;
-    font-size: 16px;
-}
-
-.phoneField svg {
-    position: absolute;
-    z-index: 1;
-    top: 14px;
-    left: 40px;
-    color: #bfc0c8;
-    font-size: 13px;
-}
-
-.phoneField input {
-    padding-left: 59px;
 }
 
 .primaryButton {
@@ -179,6 +158,50 @@ h1 {
     margin: 10px 0 -24px;
     color: var(--auxiliary-bad-color);
     font-size: 11px;
+}
+
+.privacyConsent {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    color: var(--font-darkened-color);
+    font-size: 11px;
+}
+
+.privacyConsent input {
+    width: 15px;
+    height: 15px;
+    margin-right: 4px;
+    accent-color: var(--auxiliary-color);
+}
+
+.privacyConsent label {
+    cursor: pointer;
+}
+
+.privacyLink {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--auxiliary-good-color);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.privacyLink:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
+.privacyConsent + .error {
+    margin: 0;
+}
+
+.policyModal {
+    width: min(680px, calc(100vw - 32px));
 }
 
 .srOnly {

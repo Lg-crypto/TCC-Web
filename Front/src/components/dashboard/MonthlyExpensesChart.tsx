@@ -1,6 +1,7 @@
 import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { formatCurrency } from "../../functions/financeDashboard";
+import { getDisabledChartAnimations } from "./chartAnimations";
 
 interface MonthlyExpense { label: string; value: number }
 interface MonthlyExpensesChartProps { data: MonthlyExpense[] }
@@ -11,6 +12,7 @@ export default function MonthlyExpensesChart({ data }: MonthlyExpensesChartProps
       toolbar: { show: false },
       background: "transparent",
       fontFamily: "Poppins, sans-serif",
+      animations: getDisabledChartAnimations(),
     },
     colors: ["#ff4e7b"],
     plotOptions: { bar: { borderRadius: 3, columnWidth: "60%" } },

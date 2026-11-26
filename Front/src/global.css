@@ -15,6 +15,18 @@
   --surface-raised-color: #161820;
   --border-strong-color: #30343f;
   --focus-color: #6a7080;
+  --icon-color: #aeb4c4;
+  --icon-border-color: #343844;
+  --surface-hover-color: #292d37;
+  --scrollbar-track-color: #17191f;
+  --scrollbar-thumb-color: #4c5260;
+  --scrollbar-thumb-hover-color: #687181;
+  --positive-badge-bg: #102b20;
+  --negative-badge-bg: #2b151f;
+  --danger-surface-color: #21171d;
+  --danger-hover-color: #3a1d29;
+  --danger-border-color: #6d4050;
+  --danger-hover-border-color: #85415a;
 
   --auxiliary-color: #23cb6b;
   --auxiliary-bad-color: #ff4e7b;
@@ -37,6 +49,35 @@
   --font-text-size: 16px;
 }
 
+:root[data-theme="light"] {
+  --primary-color: #f2f4f7;
+  --secondary-color: #ffffff;
+  --tertiary-color: #d8dde5;
+  --input-color: #ffffff;
+  --surface-raised-color: #f7f8fa;
+  --border-strong-color: #d0d5de;
+  --focus-color: #7a8495;
+  --font-color: #20242c;
+  --font-darkened-color: #5e6672;
+  --icon-color: #465468;
+  --icon-border-color: #c5cdd8;
+  --surface-hover-color: #e7ebf0;
+  --scrollbar-track-color: #e8ecf1;
+  --scrollbar-thumb-color: #a2acb9;
+  --scrollbar-thumb-hover-color: #788494;
+  --positive-badge-bg: #e2f4e9;
+  --negative-badge-bg: #fde8ee;
+  --danger-surface-color: #fff0f3;
+  --danger-hover-color: #ffe1e8;
+  --danger-border-color: #e5b8c3;
+  --danger-hover-border-color: #d48c9f;
+  --auxiliary-color: #167c45;
+  --auxiliary-good-color: #18864b;
+  --auxiliary-link-color: #167c46;
+  --auxiliary-bad-color: #c43d62;
+  --auxiliary-danger-color: #c43d62;
+}
+
 /*
 @media (prefers-color-scheme: dark) {
   :root {}
@@ -55,6 +96,35 @@
   box-sizing: border-box;
   font-family: var(--font-default);
   transition: 0.3s ease;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border: 2px solid var(--scrollbar-track-color);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track-color);
 }
 
 body {

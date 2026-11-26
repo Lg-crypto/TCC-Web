@@ -5,6 +5,8 @@
     background-color: var(--primary-color);
     padding: 24px;
     position: fixed;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .miniHeader{
@@ -21,6 +23,7 @@
     background-color: var(--surface-raised-color);
     border: 1px solid var(--tertiary-color);
     border-radius: 15px;
+    color: var(--icon-color);
 }
 
 .miniHeaderTexts .title{
@@ -58,6 +61,18 @@
     gap: 10px;
 }
 
+button.option {
+    text-align: left;
+    font-family: var(--font-default);
+    cursor: pointer;
+}
+
+.option:hover,
+.option:focus-visible {
+    border-color: var(--focus-color);
+    outline: none;
+}
+
 .option.deleteAccount{
     color: var(--auxiliary-danger-color);
 }
@@ -73,4 +88,25 @@
     width: max-content;
     position: absolute;
     bottom: 80px;
+}
+
+.policyModal {
+    width: min(680px, calc(100vw - 32px));
+}
+
+.helpContent h3 {
+    margin: 14px 0 5px;
+    font-size: 14px;
+}
+
+.helpContent p {
+    color: var(--font-darkened-color);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.helpContent a {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--auxiliary-good-color);
 }

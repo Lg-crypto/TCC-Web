@@ -11,9 +11,10 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { FaAt } from "react-icons/fa";
-import { FiChevronDown } from "react-icons/fi";
 import ModalMessage from "../components/layout/modalMessage";
+import PrivacyPolicy from "../components/layout/PrivacyPolicy";
 import { auth } from "../services/firebase";
+import { recordPrivacyAcceptance } from "../services/privacy";
 
 import Google from "../assets/google-icon.svg";
 
@@ -22,7 +23,7 @@ type FormValues = {
   lastName: string;
   email: string;
   password: string;
-  phone: string;
+  privacyAccepted: boolean;
 };
 const registerSchema = z.object({
   firstName: z.string().min(2, { message: "Informe seu primeiro nome." }),
@@ -31,15 +32,24 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(6, { message: "Informe uma senha com 6 caracteres ou mais." }),
-  phone: z.string().min(8, { message: "Informe um telefone válido." }),
+  privacyAccepted: z.boolean().refine((accepted) => accepted, {
+    message: "Leia e aceite a política de privacidade para continuar.",
+  }),
 });
 
 export default function Register() {
   const [open, setOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [modalText, setModalText] = useState(
+    "Não foi possível criar sua conta. Verifique os dados e tente novamente.",
+  );
   const navigate = useNavigate();
   const {
     register,
     handleSubmit,
+    getValues,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(registerSchema) });
   // createUserWithEmailAndPassword recebe Auth, e-mail e senha e devolve UserCredential;
@@ -54,23 +64,39 @@ export default function Register() {
       await updateProfile(credential.user, {
         displayName: `${data.firstName} ${data.lastName}`,
       });
+      await recordPrivacyAcceptance(credential.user.uid);
       navigate("/home");
     } catch (error) {
       console.error(error);
+      setModalText(
+        "Não foi possível concluir o cadastro. Confira os dados e tente novamente.",
+      );
       setOpen(true);
     }
   };
   // signInWithPopup recebe Auth e GoogleAuthProvider e devolve UserCredential após o OAuth.
   const authenticateWithGoogle = async () => {
+    if (!getValues("privacyAccepted")) {
+      setError("privacyAccepted", {
+        type: "manual",
+        message: "Leia e aceite a política de privacidade para continuar.",
+      });
+      return;
+    }
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+      await recordPrivacyAcceptance(credential.user.uid);
       navigate("/home");
     } catch (error) {
       console.error(error);
+      setModalText(
+        "Não foi possível concluir o cadastro com Google. Tente novamente.",
+      );
       setOpen(true);
     }
   };
-  const error = Object.values(errors)[0]?.message;
+  const error = errors.firstName?.message || errors.lastName?.message ||
+    errors.email?.message || errors.password?.message;
 
   return (
     <main className={styles.page}>
@@ -120,19 +146,37 @@ export default function Register() {
                 {...register("password")}
               />
             </label>
-            <label className={`${styles.field} ${styles.phoneField}`}>
-              <span className={styles.flag}>🇧🇷</span>
-              <FiChevronDown />
-              <span className={styles.srOnly}>Telefone</span>
-              <input
-                type="tel"
-                placeholder="(55) 9983-0439"
-                autoComplete="tel"
-                {...register("phone")}
-              />
-            </label>
           </div>
           {error && <p className={styles.error}>{error}</p>}
+          <div className={styles.privacyConsent}>
+            <input
+              id="privacyAccepted"
+              type="checkbox"
+              required
+              {...register("privacyAccepted", {
+                onChange: () => clearErrors("privacyAccepted"),
+              })}
+              aria-invalid={Boolean(errors.privacyAccepted)}
+              aria-describedby={
+                errors.privacyAccepted ? "privacyError" : undefined
+              }
+            />
+            <label htmlFor="privacyAccepted">
+              Li e concordo com a
+            </label>
+            <button
+              className={styles.privacyLink}
+              type="button"
+              onClick={() => setPrivacyOpen(true)}
+            >
+              política de privacidade
+            </button>
+          </div>
+          {errors.privacyAccepted && (
+            <p className={styles.error} id="privacyError" role="alert">
+              {errors.privacyAccepted.message}
+            </p>
+          )}
           <button className={styles.primaryButton} type="submit">
             Create an account
           </button>
@@ -154,10 +198,15 @@ export default function Register() {
         </form>
       </section>
       <ModalMessage isOpen={open} title="Aviso" onClose={() => setOpen(false)}>
-        <p>
-          Não foi possível criar sua conta. Verifique os dados e tente
-          novamente.
-        </p>
+        <p>{modalText}</p>
+      </ModalMessage>
+      <ModalMessage
+        isOpen={privacyOpen}
+        title="Política de privacidade"
+        onClose={() => setPrivacyOpen(false)}
+        className={styles.policyModal}
+      >
+        <PrivacyPolicy />
       </ModalMessage>
     </main>
   );

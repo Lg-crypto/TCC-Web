@@ -1,5 +1,6 @@
 import type { ApexOptions, ApexNonAxisChartSeries } from 'apexcharts';
 import ReactApexChart from 'react-apexcharts';
+import { getDisabledChartAnimations } from './dashboard/chartAnimations';
 import styles from './lineChart.module.css'
 
 
@@ -13,7 +14,8 @@ export default function LineChart ({categories, name, data}: LineChartProps){
     const options: ApexOptions = {
         chart: {
             type: 'line',
-            toolbar: { show: false } 
+            toolbar: { show: false },
+            animations: getDisabledChartAnimations(),
         },
         xaxis: {
             categories: categories

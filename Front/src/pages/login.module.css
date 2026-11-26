@@ -80,10 +80,105 @@ h1 {
 }
 
 .forgotPassword {
+    width: fit-content;
+    padding: 0;
+    border: 0;
+    background: transparent;
     margin: -9px 0 33px 4px;
     color: var(--font-darkened-color);
+    font: inherit;
     font-size: 10px;
     text-decoration: underline;
+    text-align: left;
+    cursor: pointer;
+}
+
+.forgotPassword:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+.resetModal {
+    width: min(420px, calc(100vw - 32px));
+}
+
+.resetForm {
+    display: grid;
+    gap: 14px;
+}
+
+.resetForm > p {
+    font-size: 13px;
+}
+
+.resetField {
+    display: grid;
+    gap: 6px;
+    color: var(--font-darkened-color);
+    font-size: 12px;
+}
+
+.resetField input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--tertiary-color);
+    border-radius: 6px;
+    outline: none;
+    background: var(--input-color);
+    color: var(--font-color);
+    font: 400 13px var(--font-default);
+}
+
+.resetField input:focus {
+    border-color: var(--focus-color);
+    box-shadow: 0 0 0 1px var(--focus-color);
+}
+
+.resetError,
+.resetSuccess {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.resetError {
+    color: var(--auxiliary-danger-color);
+}
+
+.resetSuccess {
+    color: var(--auxiliary-good-color);
+}
+
+.resetActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.resetCancel,
+.resetSubmit {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--tertiary-color);
+    border-radius: 7px;
+    font: 500 12px var(--font-default);
+    cursor: pointer;
+}
+
+.resetCancel {
+    background: var(--surface-raised-color);
+    color: var(--font-color);
+}
+
+.resetSubmit {
+    background: var(--auxiliary-color);
+    color: var(--font-color);
+}
+
+.resetCancel:disabled,
+.resetSubmit:disabled {
+    opacity: .6;
+    cursor: wait;
 }
 
 .primaryButton {

@@ -23,7 +23,7 @@
     display: grid;
     place-items: center;
     flex: 0 0 auto;
-    color: #aeb4c4;
+    color: var(--icon-color);
     text-decoration: none;
     background: var(--surface-raised-color);
     border: 1px solid var(--tertiary-color);
@@ -34,14 +34,14 @@
 .link:hover,
 .link:focus-visible {
     color: var(--font-color);
-    background: #292d37;
-    border-color: #4a4e5b;
+    background: var(--surface-hover-color);
+    border-color: var(--focus-color);
     outline: none;
 }
 
 .activeLink {
     color: var(--font-color);
-    background: #292d37;
+    background: var(--surface-hover-color);
     border-color: var(--focus-color);
 }
 

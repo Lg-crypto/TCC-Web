@@ -8,12 +8,15 @@
     align-items: center;
 
     backdrop-filter: blur(3px);
-    z-index: 1000;
+    z-index: 10000;
 }
 
 .modal {
     width: 320px;
     min-height: 160px;
+    max-width: calc(100vw - 32px);
+    max-height: 85dvh;
+    overflow-y: auto;
 
     background: var(--secondary-color);
     color: var(--font-color);
@@ -58,6 +61,16 @@
 .content {
     color: var(--font-color);
     line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.content h3 {
+    margin: 18px 0 6px;
+    font-size: 15px;
+}
+
+.content p + p {
+    margin-top: 10px;
 }
 
 @keyframes showModal {

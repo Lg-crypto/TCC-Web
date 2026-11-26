@@ -19,6 +19,7 @@ import styles from "./home.module.css";
 
 export default function Home() {
   const [records, setRecords] = useState<RecordType[]>([]);
+  const [recordsLoaded, setRecordsLoaded] = useState(false);
   const [period, setPeriod] = useState<DashboardPeriod>("6M");
   const [search, setSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("all");
@@ -30,19 +31,30 @@ export default function Home() {
     let unsubscribeRecords: (() => void) | undefined;
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       unsubscribeRecords?.();
-      if (!user) return setRecords([]);
+      setRecords([]);
+      if (!user) {
+        setRecordsLoaded(true);
+        return;
+      }
+      setRecordsLoaded(false);
       unsubscribeRecords = onSnapshot(
         query(
           collection(db, "users", user.uid, "records"),
           orderBy("dateKey", "desc"),
         ),
-        (snapshot) =>
+        (snapshot) => {
           setRecords(
             snapshot.docs.map((document) => ({
               id: document.id,
               ...document.data(),
             })) as RecordType[],
-          ),
+          );
+          setRecordsLoaded(true);
+        },
+        (error) => {
+          console.error(error);
+          setRecordsLoaded(true);
+        },
       );
     });
     return () => {
@@ -233,7 +245,9 @@ export default function Home() {
                 />
               </div>
               <div className={styles.lineChart}>
-                {lineData.data.length ? (
+                {!recordsLoaded ? (
+                  <div className={styles.chartLoading}>Carregando gráfico...</div>
+                ) : lineData.data.length ? (
                   <BalanceLineChart
                     categories={lineData.categories}
                     data={lineData.data}
@@ -252,7 +266,11 @@ export default function Home() {
                   <p>Comparativo mensal de despesas (R$)</p>
                 </div>
               </div>
-              <MonthlyExpensesChart data={monthlyExpenses} />
+              {recordsLoaded ? (
+                <MonthlyExpensesChart data={monthlyExpenses} />
+              ) : (
+                <div className={styles.chartLoading}>Carregando gráfico...</div>
+              )}
             </article>
             <article className={styles.chartCard}>
               <div className={styles.cardHeader}>
@@ -272,12 +290,18 @@ export default function Home() {
                   ))}
                 </select>
               </div>
-              <ExpenseDistributionChart
-                data={categoryExpenses}
-                contentClassName={styles.donutContent}
-                legendClassName={styles.legend}
-                emptyClassName={styles.emptyChart}
-              />
+              {recordsLoaded ? (
+                <ExpenseDistributionChart
+                  data={categoryExpenses}
+                  contentClassName={styles.donutContent}
+                  legendClassName={styles.legend}
+                  emptyClassName={styles.emptyChart}
+                />
+              ) : (
+                <div className={`${styles.donutContent} ${styles.chartLoading}`}>
+                  Carregando gráfico...
+                </div>
+              )}
             </article>
           </section>
         </div>
