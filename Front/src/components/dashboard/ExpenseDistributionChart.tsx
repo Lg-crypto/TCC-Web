@@ -4,6 +4,7 @@ import {
   categoryDetails,
   formatCurrency,
 } from "../../functions/financeDashboard";
+import { getDisabledChartAnimations } from "./chartAnimations";
 
 type CategoryExpense = [string, number];
 interface ExpenseDistributionChartProps {
@@ -12,7 +13,26 @@ interface ExpenseDistributionChartProps {
   legendClassName: string;
   emptyClassName: string;
 }
-const colors = ["#24d878", "#23cb6b", "#aeb4c4", "#ff4e7b", "#8b8e9a"];
+const categoryColors: Record<string, string> = {
+  House: "#24d878",
+  Shopping: "#4ea1ff",
+  Food: "#ffb454",
+  Transport: "#a78bfa",
+  Entertainment: "#ff4e7b",
+  Other: "#aeb4c4",
+};
+
+function getCategoryColor(category: string) {
+  if (Object.hasOwn(categoryColors, category)) return categoryColors[category];
+
+  // Keep legacy or custom categories visually stable when the selected month changes.
+  const hash = [...category].reduce(
+    (value, character) => (value * 31 + character.charCodeAt(0)) | 0,
+    0,
+  );
+  const hue = ((hash % 360) + 360) % 360;
+  return `hsl(${hue} 68% 62%)`;
+}
 
 export default function ExpenseDistributionChart({
   data,
@@ -28,7 +48,9 @@ export default function ExpenseDistributionChart({
     );
 
   const total = data.reduce((sum, [, value]) => sum + value, 0);
+  const colors = data.map(([category]) => getCategoryColor(category));
   const options: ApexOptions = {
+    chart: { animations: getDisabledChartAnimations() },
     labels: data.map(
       ([category]) => categoryDetails[category]?.label || category,
     ),

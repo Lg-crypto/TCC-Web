@@ -18,6 +18,7 @@ import {
 import SideMenu from "../components/layout/sideMenu";
 import { auth, db } from "../services/firebase";
 import { createRecord } from "../services/records";
+import { showAppNotification } from "../services/notifications";
 import {
   categoryDetails,
   formatCurrency,
@@ -58,6 +59,7 @@ const recordSchema = z.object({
 });
 type FormValues = z.infer<typeof recordSchema>;
 type Filter = "all" | "gain" | "expense" | "today" | "yesterday";
+type CategoryFilter = string | "all";
 const initialValues = {
   type: "Expense" as const,
   category: "House",
@@ -90,6 +92,7 @@ export default function NewRecordPage() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [submitError, setSubmitError] = useState("");
   const [section, setSection] = useState<"records" | "subscriptions">("records");
   const [subscriptionFilter, setSubscriptionFilter] = useState<"all" | "today" | "yesterday">("all");
@@ -110,6 +113,16 @@ export default function NewRecordPage() {
   const selectedType = useWatch({ control, name: "type" });
   const categories =
     selectedType === "Gain" ? gainCategories : expenseCategories;
+  const categoryFilters = useMemo(() => {
+    const categoryIds = new Set(Object.keys(categoryDetails));
+    records.forEach((record) =>
+      categoryIds.add(record.destination_or_source || "Other"),
+    );
+    return Array.from(categoryIds, (id) => ({
+      id,
+      label: categoryDetails[id]?.label || id,
+    }));
+  }, [records]);
 
   useEffect(() => {
     setValue("category", selectedType === "Gain" ? "Salary" : "House");
@@ -156,6 +169,7 @@ export default function NewRecordPage() {
         destination_or_source: data.category,
         comment: data.comment || "",
       });
+      showAppNotification("Transação registrada", data.description);
       reset({ ...initialValues, date: getToday().dateKey });
     } catch (error) {
       console.error(error);
@@ -170,6 +184,7 @@ export default function NewRecordPage() {
     setDeleteError("");
     try {
       await deleteDoc(doc(db, "users", user.uid, "records", recordId));
+      showAppNotification("Transação excluída", "O registro foi removido da sua conta.");
     } catch (error) {
       console.error(error);
       setDeleteError("Não foi possível excluir o registro. Tente novamente.");
@@ -207,15 +222,18 @@ export default function NewRecordPage() {
           (activeFilter === "expense" && !record.gain) ||
           (activeFilter === "today" && sameCalendarDay(date, today)) ||
           (activeFilter === "yesterday" && sameCalendarDay(date, yesterday));
+        const matchesCategory =
+          categoryFilter === "all" ||
+          (record.destination_or_source || "Other") === categoryFilter;
         return (
-          matchesFilter &&
+          matchesFilter && matchesCategory &&
           (!term ||
             `${record.description} ${record.destination_or_source} ${record.comment || ""}`
               .toLocaleLowerCase("pt-BR")
               .includes(term))
         );
       });
-  }, [records, activeFilter, search]);
+  }, [records, activeFilter, categoryFilter, search]);
   const groups = useMemo(
     () =>
       filteredRecords.reduce<{ title: string; records: RecordType[] }[]>(
@@ -261,7 +279,7 @@ export default function NewRecordPage() {
               />
             </label>
             <button
-              className={styles.iconButton}
+              className={`${styles.iconButton} ${activeFilter !== "all" || categoryFilter !== "all" ? styles.filterActive : ""}`}
               type="button"
               onClick={() => setFilterMenuOpen(open => !open)}
               aria-label="Abrir filtros"
@@ -269,18 +287,80 @@ export default function NewRecordPage() {
             >
               <LuFilter size={19} />
             </button>
-            {filterMenuOpen && <div className={styles.filterMenu}>
-              <strong>Filtrar {section === "records" ? "transações" : "assinaturas"}</strong>
-              {(section === "records" ? filters : [{ id: "all", label: "Todas" }, { id: "today", label: "Hoje" }, { id: "yesterday", label: "Ontem" }]).map(filter => {
-                const selected = section === "records" ? activeFilter === filter.id : subscriptionFilter === filter.id;
-                return <button key={filter.id} type="button" className={selected ? styles.selectedMenuFilter : ""} onClick={() => {
-                  if (section === "records") setActiveFilter(filter.id as Filter);
-                  else setSubscriptionFilter(filter.id as "all" | "today" | "yesterday");
-                  setFilterMenuOpen(false);
-                }}>{filter.label}</button>;
-              })}
-              <button type="button" className={styles.clearFilters} onClick={() => {setSearch("");setActiveFilter("all");setSubscriptionFilter("all");setFilterMenuOpen(false);}}>Limpar busca e filtros</button>
-            </div>}
+            {filterMenuOpen && (
+              <div className={styles.filterMenu}>
+                <strong>Filtrar {section === "records" ? "transações" : "assinaturas"}</strong>
+                <strong className={styles.filterSectionTitle}>Tipo e data</strong>
+                {(section === "records"
+                  ? filters
+                  : [
+                      { id: "all", label: "Todas" },
+                      { id: "today", label: "Hoje" },
+                      { id: "yesterday", label: "Ontem" },
+                    ]
+                ).map((filter) => {
+                  const selected =
+                    section === "records"
+                      ? activeFilter === filter.id
+                      : subscriptionFilter === filter.id;
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      className={selected ? styles.selectedMenuFilter : ""}
+                      onClick={() => {
+                        if (section === "records") setActiveFilter(filter.id as Filter);
+                        else setSubscriptionFilter(filter.id as "all" | "today" | "yesterday");
+                        setFilterMenuOpen(false);
+                      }}
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+                {section === "records" && (
+                  <>
+                    <strong className={styles.filterSectionTitle}>Categoria</strong>
+                    <button
+                      type="button"
+                      className={categoryFilter === "all" ? styles.selectedMenuFilter : ""}
+                      onClick={() => {
+                        setCategoryFilter("all");
+                        setFilterMenuOpen(false);
+                      }}
+                    >
+                      Todas as categorias
+                    </button>
+                    {categoryFilters.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        className={categoryFilter === category.id ? styles.selectedMenuFilter : ""}
+                        onClick={() => {
+                          setCategoryFilter(category.id);
+                          setFilterMenuOpen(false);
+                        }}
+                      >
+                        {category.label}
+                      </button>
+                    ))}
+                  </>
+                )}
+                <button
+                  type="button"
+                  className={styles.clearFilters}
+                  onClick={() => {
+                    setSearch("");
+                    setActiveFilter("all");
+                    setCategoryFilter("all");
+                    setSubscriptionFilter("all");
+                    setFilterMenuOpen(false);
+                  }}
+                >
+                  Limpar busca e filtros
+                </button>
+              </div>
+            )}
           </div>
         </header>
         {section === "records" ? <div className={styles.layout}>
@@ -508,6 +588,7 @@ function SubscriptionSection({ navigateToLogin, search, filter, onFilterChange }
         description: form.description.trim(), gain: form.type === "Gain", period: form.period, value,
         date: `${day}/${month}/${year}`, dateKey: form.date, comment: form.comment.trim(),
       });
+      showAppNotification("Assinatura registrada", form.description.trim());
       setForm({ description: "", type: "Expense", period: "Mensal", value: "", date: "", comment: "" });
     } catch (saveError) { console.error(saveError); setError("Não foi possível salvar a assinatura. Tente novamente."); }
     finally { setSaving(false); }
@@ -516,7 +597,10 @@ function SubscriptionSection({ navigateToLogin, search, filter, onFilterChange }
     const user = auth.currentUser;
     if (!user) { navigateToLogin(); return; }
     setDeletingId(id); setError("");
-    try { await deleteDoc(doc(db, "users", user.uid, "subscriptions", id)); }
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "subscriptions", id));
+      showAppNotification("Assinatura excluída", "A assinatura foi removida da sua conta.");
+    }
     catch (deleteError) { console.error(deleteError); setError("Não foi possível excluir a assinatura. Tente novamente."); }
     finally { setDeletingId(""); }
   };

@@ -35,7 +35,7 @@
     border: 5px solid var(--secondary-color);
     border-radius: 50%;
     background: var(--surface-raised-color);
-    color: white;
+    color: var(--icon-color);
     font-size: 36px;
     font-weight: 600
 }
@@ -86,7 +86,7 @@
     flex: 0 0 auto;
     place-items: center;
     border-radius: 8px;
-    color: #c9ceda;
+    color: var(--icon-color);
     background: var(--input-color)
 }
 
@@ -105,7 +105,7 @@
 .mono {
     font-family: monospace;
     font-size: 11px !important;
-    color: #abb2c2
+    color: var(--font-darkened-color)
 }
 
 .readOnlyNotice {
@@ -119,6 +119,145 @@
     display: grid;
     place-items: center;
     color: var(--font-darkened-color)
+}
+
+.passwordSection,
+.dangerSection {
+    margin-top: 24px;
+    padding: 18px;
+    border: 1px solid var(--tertiary-color);
+    border-radius: 10px;
+    background: var(--secondary-color);
+}
+
+.passwordSection h2,
+.dangerSection h2 {
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.passwordForm {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.passwordForm label,
+.deleteForm label {
+    display: grid;
+    gap: 6px;
+    color: var(--font-darkened-color);
+    font-size: 12px;
+}
+
+.passwordForm input,
+.deleteForm input {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 11px;
+    border: 1px solid var(--tertiary-color);
+    border-radius: 6px;
+    outline: none;
+    background: var(--input-color);
+    color: var(--font-color);
+}
+
+.passwordForm input:focus,
+.deleteForm input:focus {
+    border-color: var(--focus-color);
+    box-shadow: 0 0 0 1px var(--focus-color);
+}
+
+.actionButton,
+.deleteButton,
+.cancelButton {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    font: 500 12px var(--font-default);
+    cursor: pointer;
+}
+
+.actionButton {
+    justify-self: start;
+    background: var(--auxiliary-color);
+    color: var(--font-color);
+}
+
+.deleteButton {
+    background: rgba(255, 78, 123, .12);
+    border-color: rgba(255, 78, 123, .4);
+    color: var(--auxiliary-danger-color);
+}
+
+.cancelButton {
+    background: var(--surface-raised-color);
+    border-color: var(--tertiary-color);
+    color: var(--font-color);
+}
+
+.actionButton:disabled,
+.deleteButton:disabled,
+.cancelButton:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+.error,
+.success {
+    grid-column: 1 / -1;
+    font-size: 12px;
+}
+
+.error {
+    color: var(--auxiliary-danger-color);
+}
+
+.success {
+    color: var(--auxiliary-good-color);
+}
+
+.providerNotice,
+.dangerSection p {
+    color: var(--font-darkened-color);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.dangerSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 18px;
+    border-color: rgba(255, 78, 123, .35);
+}
+
+.dangerSection h2 {
+    margin-bottom: 4px;
+    color: var(--auxiliary-danger-color);
+}
+
+.deleteModal {
+    width: min(480px, calc(100vw - 32px));
+}
+
+.deleteForm {
+    display: grid;
+    gap: 14px;
+}
+
+.deleteForm > p {
+    font-size: 13px;
+}
+
+.deleteActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 @media(max-width:850px) {
@@ -155,6 +294,15 @@
 
     .infos {
         grid-template-columns: 1fr
+    }
+
+    .passwordForm {
+        grid-template-columns: 1fr;
+    }
+
+    .dangerSection {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .cover {

@@ -40,7 +40,7 @@ export default function SideMenu() {
         <NavLink to="/newrecord" aria-label="Nova transação" className={({ isActive }) => `${styles.link} ${isActive ? styles.activeLink : ""}`}>
           <LuPlus size={22} />
         </NavLink>
-        <NavLink to="/about" aria-label="Sobre o projeto" className={({ isActive }) => `${styles.link} ${styles.aboutButton} ${isActive ? styles.activeLink : ""}`}>
+        <NavLink to="/profile/settings" aria-label="Configurações" className={({ isActive }) => `${styles.link} ${styles.aboutButton} ${isActive ? styles.activeLink : ""}`}>
           <LuSettings size={22} />
         </NavLink>
         <button className={`${styles.link} ${styles.logoutButton}`} type="button" onClick={encerrarSessao} disabled={saindo} aria-label="Sair da conta" title="Sair da conta">

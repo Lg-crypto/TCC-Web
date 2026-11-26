@@ -1,8 +1,14 @@
+.container {
+    min-height: 100vh;
+    background: var(--primary-color);
+}
+
 .content{
     position: absolute;
     left: 32.5vw;
     top: 5vh;
     padding: 20px !important;
+    overflow-y: auto;
 }
 
 .title{
@@ -12,11 +18,60 @@
 
 .settingsRow{
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    width: 50%;
+    gap: 18px;
+    width: min(100%, 520px);
+    margin: 14px 0;
+    color: var(--font-color);
 }
 
 .select{
     background-color: var(--tertiary-color);
-    color: white;
+    color: var(--font-color);
+    border: 1px solid var(--border-strong-color);
+    border-radius: 6px;
+    padding: 7px 10px;
+}
+
+.check {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--auxiliary-color);
+}
+
+.currentValue {
+    color: var(--font-darkened-color);
+}
+
+.settingsRow small,
+.note {
+    color: var(--font-darkened-color);
+    font-size: 11px;
+}
+
+.note {
+    max-width: 520px;
+    line-height: 1.5;
+}
+
+.notificationError {
+    width: min(100%, 520px);
+    margin: 8px 0;
+    color: var(--auxiliary-danger-color);
+    font-size: 12px;
+}
+
+@media (max-width: 850px) {
+    .content {
+        left: 0;
+        top: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0;
+    }
+
+    .container > aside {
+        display: none;
+    }
 }

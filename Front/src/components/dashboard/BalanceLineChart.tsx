@@ -1,6 +1,7 @@
 import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { formatCurrency } from "../../functions/financeDashboard";
+import { getDisabledChartAnimations } from "./chartAnimations";
 
 interface BalanceLineChartProps {
   categories: string[];
@@ -18,6 +19,7 @@ export default function BalanceLineChart({
       toolbar: { show: false },
       background: "transparent",
       fontFamily: "Poppins, sans-serif",
+      animations: getDisabledChartAnimations(),
     },
     stroke: { curve: "straight", width: 2 },
     colors: ["#24d878"],
